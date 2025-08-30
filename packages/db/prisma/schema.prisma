@@ -20,7 +20,6 @@ model User {
   updatedAt      DateTime          @updatedAt
   abonnements    abonnements[]
   audit_logs     audit_logs[]
-  calendriers    CalendrierEtude[] @relation("CalendrierParent")
   consentements  consentements[]
   cours          cours[]
   foyer          Foyer?            @relation("FoyerParent")
@@ -52,12 +51,9 @@ model Enfant {
   updatedAt            DateTime               @updatedAt
   niveauScolaire       NiveauScolaire?
   nom                  String?
-  calendriers          CalendrierEtude[]
   foyer                Foyer                  @relation(fields: [foyerId], references: [id], onDelete: Cascade)
   progressions         progressions[]
-  progressionsCours    ProgressionCours[]
   soumissions          soumissions[]
-  suivis_apprentissage suivis_apprentissage[]
 
   @@map("enfants")
 }
@@ -86,67 +82,11 @@ model CoursGouvernemental {
   competences       String[]
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
-  progressions      ProgressionCours[]
-  sessions          SessionEtude[]
-  calendriers       CalendrierEtude[]  @relation("CalendrierCours")
 
   @@map("cours_gouvernementaux")
 }
 
-model CalendrierEtude {
-  id          String                @id @default(cuid())
-  nom         String
-  description String?
-  enfantId    String
-  parentId    String
-  actif       Boolean               @default(true)
-  createdAt   DateTime              @default(now())
-  updatedAt   DateTime              @updatedAt
-  enfant      Enfant                @relation(fields: [enfantId], references: [id], onDelete: Cascade)
-  parent      User                  @relation("CalendrierParent", fields: [parentId], references: [id], onDelete: Cascade)
-  sessions    SessionEtude[]
-  cours       CoursGouvernemental[] @relation("CalendrierCours")
 
-  @@map("calendriers_etude")
-}
-
-model SessionEtude {
-  id             String               @id @default(cuid())
-  titre          String
-  description    String?
-  dateDebut      DateTime
-  dateFin        DateTime?
-  dureePlanifiee Int
-  calendrierId   String
-  coursId        String?
-  typeCours      TypeCours
-  statut         StatutProgression    @default(NON_COMMENCE)
-  notes          String?
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
-  calendrier     CalendrierEtude      @relation(fields: [calendrierId], references: [id], onDelete: Cascade)
-  cours          CoursGouvernemental? @relation(fields: [coursId], references: [id])
-
-  @@map("sessions_etude")
-}
-
-model ProgressionCours {
-  id           String              @id @default(cuid())
-  pourcentage  Float               @default(0)
-  tempsPasse   Int                 @default(0)
-  dernierAcces DateTime            @default(now())
-  statut       StatutProgression   @default(NON_COMMENCE)
-  notes        String?
-  enfantId     String
-  coursId      String
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
-  cours        CoursGouvernemental @relation(fields: [coursId], references: [id], onDelete: Cascade)
-  enfant       Enfant              @relation(fields: [enfantId], references: [id], onDelete: Cascade)
-
-  @@unique([enfantId, coursId])
-  @@map("progressions_cours")
-}
 
 model Competence {
   id                    String                 @id @default(cuid())
@@ -329,20 +269,7 @@ model soumissions {
   @@unique([quizId, enfantId])
 }
 
-model suivis_apprentissage {
-  id                  String         @id
-  date                DateTime       @default(now())
-  matiere             Matiere
-  niveauScolaire      NiveauScolaire
-  tempsPasse          Int
-  coursCompletes      Int            @default(0)
-  competencesAcquises String[]
-  observations        String?
-  enfantId            String
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime
-  enfants             Enfant         @relation(fields: [enfantId], references: [id], onDelete: Cascade)
-}
+
 
 enum UserRole {
   ADMIN
@@ -389,18 +316,7 @@ enum Matiere {
   ECONOMIE_FAMILIALE
 }
 
-enum StatutProgression {
-  NON_COMMENCE
-  EN_COURS
-  TERMINE
-  EN_PAUSE
-}
 
-enum TypeCours {
-  COURS_GOUVERNEMENTAL
-  COURS_PERSONNALISE
-  ACTIVITE_COMPLEMENTAIRE
-}
 
 enum ConsentType {
   PRIVACY_POLICY

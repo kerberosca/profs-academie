@@ -24,8 +24,11 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Récupérer tous les parents
-    const parents = await db.parent.findMany({
+    // Récupérer tous les parents (utilisateurs avec rôle PARENT)
+    const parents = await db.user.findMany({
+      where: {
+        role: 'PARENT'
+      },
       include: {
         foyer: {
           include: {

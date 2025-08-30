@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Transformer les données pour l'interface
-    const enfantsFormatted = enfants.map(enfant => ({
+    const enfantsFormatted = enfants.map((enfant: any) => ({
       id: enfant.id,
       prenom: enfant.prenom,
       nom: enfant.nom || '',

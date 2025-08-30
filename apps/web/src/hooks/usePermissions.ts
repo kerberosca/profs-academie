@@ -6,7 +6,7 @@ export interface Permission {
   roles: ('PARENT' | 'TEACHER' | 'CHILD')[];
 }
 
-export const PERMISSIONS = {
+export const PERMISSIONS: Record<string, Permission> = {
   // Permissions pour les parents
   VIEW_PARENT_DASHBOARD: { action: 'view', resource: 'parent_dashboard', roles: ['PARENT'] },
   MANAGE_CHILDREN: { action: 'manage', resource: 'children', roles: ['PARENT'] },
@@ -27,7 +27,7 @@ export const PERMISSIONS = {
   // Permissions communes
   VIEW_PROFILE: { action: 'view', resource: 'profile', roles: ['PARENT', 'TEACHER', 'CHILD'] },
   UPDATE_PROFILE: { action: 'update', resource: 'profile', roles: ['PARENT', 'TEACHER'] },
-} as const;
+};
 
 export function usePermissions() {
   const { user } = useAuth();

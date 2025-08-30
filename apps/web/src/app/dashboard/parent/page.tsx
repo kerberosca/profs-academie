@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "../../../contexts/AuthContext";
-import { NiveauScolaire } from "../../../types/lms";
+import { NiveauScolaire, getGradeLabel } from "../../../types/lms";
 
 interface Enfant {
   id: string;
@@ -65,7 +65,7 @@ function ParentDashboardContent() {
             id: enfant.id,
             name: enfant.prenom,
             age: new Date().getFullYear() - enfant.anneeNaissance,
-            grade: getGradeLabel(enfant.niveauScolaire || 'P1'),
+            grade: getGradeLabel(enfant.niveauScolaire || null),
             avatar: enfant.prenom.charAt(0).toUpperCase(),
             niveauScolaire: enfant.niveauScolaire
           }));

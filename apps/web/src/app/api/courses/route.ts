@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     // Récupérer les cours gouvernementaux pour ce niveau
     const coursGouvernementaux = await db.coursGouvernemental.findMany({
       where: {
-        niveauScolaire: niveauScolaire
+        niveauScolaire: niveauScolaire as any
       },
       orderBy: {
         titre: 'asc'
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Transformer en format Course
-    const courses = coursGouvernementaux.map(cours => ({
+    const courses = coursGouvernementaux.map((cours: any) => ({
       id: cours.id,
       title: cours.titre,
       slug: cours.titre.toLowerCase().replace(/\s+/g, '-'),

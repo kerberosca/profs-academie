@@ -2,73 +2,40 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@profs-academie/ui";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@profs-academie/ui";
-import { Badge } from "@profs-academie/ui";
-
-import { 
-  BookOpen, 
-  Calendar, 
-  Users, 
-  Plus,
-  Settings,
-  LogOut,
-  User,
-  Play,
-  Trash2,
-  Wand2,
-  FileText,
-  Clock,
-  Info
-} from "lucide-react";
+import { Settings, LogOut, User, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "../../../../contexts/AuthContext";
-import { useCalendar } from "../../../../hooks/useCalendar";
+import { useLMSStandard } from "../../../../hooks/useLMSStandard";
+import { EnfantSelector } from "../../../../components/lms/EnfantSelector";
+import { CoursNiveauPanel } from "../../../../components/lms/CoursNiveauPanel";
+import { CompetencesNiveauPanel } from "../../../../components/lms/CompetencesNiveauPanel";
+import { PlanificateurPeriode } from "../../../../components/lms/PlanificateurPeriode";
+import { PlanHebdomadaireDisplay } from "../../../../components/lms/PlanHebdomadaireDisplay";
 import { PlaceholderSuivi } from "../../../../components/PlaceholderSuivi";
-import { getGradeLabel, WEEK_DAYS, DEFAULT_TIME_SLOTS, HOURS_PER_WEEK_OPTIONS } from "../../../../types/lms";
+import { EnfantData, Enfant, getGradeLabel } from "../../../../types/lms";
 
-interface Enfant {
-  id: string;
-  prenom: string;
-  nom?: string;
-  anneeNaissance: number;
-  niveauScolaire?: string;
-}
+export default function LMSStandardPage() {
+  const { user, logout } = useAuth();
+  const [enfants, setEnfants] = useState<EnfantData[]>([]);
+  const [loadingEnfants, setLoadingEnfants] = useState(true);
 
-interface EnfantData {
-  id: string;
-  name: string;
-  age: number;
-  grade: string;
-  avatar: string;
-  niveauScolaire?: string;
-}
-
-export default function LMSPage() {
-  const { user } = useAuth();
-  const [children, setChildren] = useState<EnfantData[]>([]);
-  const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  // Hook pour la gestion du calendrier
   const {
-    selectedChild,
-    selectedWeek,
-    availableCourses,
-    hoursPerWeek,
-    loading: calendarLoading,
+    enfantSelectionne,
+    coursDisponibles,
+    competencesNiveau,
+    planGenere,
+    configuration,
+    loading,
     error,
-    fetchChild,
-    setHoursPerWeek,
-    generateWeek,
-    createEmptyWeek,
-    addEvent,
-    updateEvent,
-    deleteEvent
-  } = useCalendar();
+    selectionnerEnfant,
+    mettreAJourConfiguration,
+    genererPlan,
+    planifierSemaine
+  } = useLMSStandard();
 
   // Charger les enfants du parent
   useEffect(() => {
-    const fetchChildren = async () => {
+    const fetchEnfants = async () => {
       if (!user) return;
       
       try {
@@ -85,80 +52,21 @@ export default function LMSPage() {
             id: enfant.id,
             name: enfant.prenom,
             age: new Date().getFullYear() - enfant.anneeNaissance,
-            grade: enfant.niveauScolaire || 'Niveau non défini',
+            grade: getGradeLabel(enfant.niveauScolaire || null),
             avatar: enfant.prenom.charAt(0).toUpperCase(),
             niveauScolaire: enfant.niveauScolaire
           }));
-          setChildren(enfantsFormatted);
-          
-          // Sélectionner automatiquement le premier enfant
-          if (enfantsFormatted.length > 0 && !selectedChildId) {
-            setSelectedChildId(enfantsFormatted[0].id);
-          }
+          setEnfants(enfantsFormatted);
         }
       } catch (error) {
         console.error('Erreur lors du chargement des enfants:', error);
       } finally {
-        setLoading(false);
+        setLoadingEnfants(false);
       }
     };
 
-    fetchChildren();
-  }, [user, selectedChildId]);
-
-  // Charger les données de l'enfant sélectionné
-  useEffect(() => {
-    if (selectedChildId) {
-      fetchChild(selectedChildId);
-    }
-  }, [selectedChildId, fetchChild]);
-
-  // Obtenir le lundi de la semaine courante
-  const getCurrentWeekStart = () => {
-    const now = new Date();
-    const monday = new Date(now);
-    const day = now.getDay();
-    const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Ajuster pour lundi
-    monday.setHours(0, 0, 0, 0);
-    return monday.toISOString();
-  };
-
-  // Générer automatiquement une semaine
-  const handleGenerateWeek = async () => {
-    if (!selectedChildId) return;
-    const weekStart = getCurrentWeekStart();
-    await generateWeek(selectedChildId, weekStart, hoursPerWeek);
-  };
-
-  // Créer une semaine vide
-  const handleCreateEmptyWeek = async () => {
-    if (!selectedChildId) return;
-    const weekStart = getCurrentWeekStart();
-    await createEmptyWeek(selectedChildId, weekStart);
-  };
-
-  // Ajouter un cours au calendrier
-  const handleAddCourse = async (course: any, dayIndex: number, timeSlotIndex: number) => {
-    if (!selectedChildId || !selectedWeek) return;
-
-    const weekStart = new Date(selectedWeek.weekStartISO);
-    const targetDate = new Date(weekStart);
-    targetDate.setDate(weekStart.getDate() + dayIndex);
-
-    const timeSlot = DEFAULT_TIME_SLOTS[timeSlotIndex];
-    const [hours, minutes] = timeSlot.start.split(':').map(Number);
-    targetDate.setHours(hours, minutes, 0, 0);
-
-    const endDate = new Date(targetDate);
-    endDate.setMinutes(endDate.getMinutes() + course.durationMinutes);
-
-    await addEvent({
-      childId: selectedChildId,
-      courseId: course.id,
-      startISO: targetDate.toISOString(),
-      endISO: endDate.toISOString()
-    });
-  };
+    fetchEnfants();
+  }, [user]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50">
@@ -179,7 +87,7 @@ export default function LMSPage() {
               <Button variant="ghost" size="sm">
                 <Settings className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" onClick={logout}>
                 <LogOut className="w-4 h-4" />
               </Button>
             </div>
@@ -192,257 +100,104 @@ export default function LMSPage() {
         <div className="mb-6">
           <Link href="/dashboard/parent">
             <Button variant="ghost" className="mb-4">
-              ← Retour au tableau de bord
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Retour au tableau de bord
             </Button>
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Système de Gestion de l'Apprentissage</h1>
-          <p className="text-gray-600">Générez et gérez les calendriers d'apprentissage pour vos enfants</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Système de Gestion de l'Apprentissage
+          </h1>
+          <p className="text-gray-600">
+            Gérez les cours et compétences de vos enfants selon le programme québécois
+          </p>
         </div>
 
         {/* Sélection d'enfant */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Sélectionner un enfant</h2>
-          <div className="flex space-x-4">
-            {children.map((child) => (
-              <button
-                key={child.id}
-                onClick={() => setSelectedChildId(child.id)}
-                className={`p-4 rounded-lg border-2 transition-all ${
-                  selectedChildId === child.id
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-gray-200 bg-white hover:border-primary/50'
-                }`}
-              >
-                <div className="text-2xl mb-2">{child.avatar}</div>
-                <div className="text-sm font-medium">{child.name}</div>
-                <div className="text-xs text-gray-500">{child.grade}</div>
-              </button>
-            ))}
+        {loadingEnfants ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-gray-600">Chargement des enfants...</p>
           </div>
-        </div>
+        ) : (
+          <EnfantSelector 
+            enfants={enfants}
+            enfantSelectionne={enfantSelectionne}
+            onSelectionner={selectionnerEnfant}
+          />
+        )}
 
-        {selectedChild && (
+        {/* Affichage des erreurs */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-800">{error}</p>
+          </div>
+        )}
+
+        {/* Contenu principal - Affiché seulement si un enfant est sélectionné */}
+        {enfantSelectionne && (
           <>
-            {/* Bandeau avec les informations de l'enfant et configuration */}
-            <div className="mb-6 p-4 bg-white rounded-lg shadow-sm">
+            {/* En-tête enfant sélectionné */}
+            <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">{selectedChild.firstName}</h2>
-                  <p className="text-gray-600">{getGradeLabel(selectedChild.grade)}</p>
+                  <h2 className="text-2xl font-bold text-gray-900">{enfantSelectionne.name}</h2>
+                  <p className="text-gray-600">{enfantSelectionne.grade}</p>
                 </div>
-                <div className="flex items-center space-x-4">
-                  {/* Sélection du nombre d'heures par semaine */}
-                  <div className="flex items-center space-x-2">
-                    <Clock className="w-4 h-4 text-gray-600" />
-                    <span className="text-sm font-medium text-gray-700">Heures par semaine:</span>
-                    <select
-                      value={hoursPerWeek.toString()}
-                      onChange={(e) => setHoursPerWeek(parseInt(e.target.value))}
-                      className="p-2 border border-gray-300 rounded-md text-sm w-48"
-                    >
-                      {HOURS_PER_WEEK_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value.toString()}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex space-x-3">
-                    <Button onClick={handleGenerateWeek} disabled={calendarLoading}>
-                      <Wand2 className="w-4 h-4 mr-2" />
-                      Générer automatiquement
-                    </Button>
-                    <Button variant="outline" onClick={handleCreateEmptyWeek} disabled={calendarLoading}>
-                      <FileText className="w-4 h-4 mr-2" />
-                      Créer semaine vide
-                    </Button>
-                  </div>
+                <div className="text-right">
+                  <p className="text-sm text-gray-500">Âge</p>
+                  <p className="text-lg font-semibold text-gray-900">{enfantSelectionne.age} ans</p>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Colonne gauche : Cours disponibles */}
-              <div className="lg:col-span-1">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Cours offerts pour ce niveau
-                </h3>
-                <div className="space-y-3">
-                  {availableCourses.map((course) => (
-                    <Card key={course.id} className="hover:shadow-md transition-shadow">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-base">{course.title}</CardTitle>
-                          <Badge variant="outline">{course.subject}</Badge>
-                        </div>
-                        <CardDescription className="text-sm">
-                          {course.description}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        {/* Aperçu du cours */}
-                        {course.outline && (
-                          <div className="mb-3 p-3 bg-blue-50 rounded-lg">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <Info className="w-4 h-4 text-blue-600" />
-                              <span className="text-sm font-medium text-blue-800">Aperçu du cours</span>
-                            </div>
-                            <p className="text-sm text-blue-700">{course.outline}</p>
-                          </div>
-                        )}
-                        
-                        {/* Compétences */}
-                        {course.competences && course.competences.length > 0 && (
-                          <div className="mb-3">
-                            <p className="text-xs font-medium text-gray-600 mb-1">Compétences attendues:</p>
-                            <ul className="text-xs text-gray-600 space-y-1">
-                              {course.competences.slice(0, 3).map((competence, index) => (
-                                <li key={index} className="flex items-start space-x-1">
-                                  <span className="text-blue-500 mt-1">•</span>
-                                  <span>{competence}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
-                        <div className="flex justify-between text-sm text-gray-600 mb-3">
-                          <span>Durée: {course.durationMinutes} min</span>
-                          <span>Fréquence: {course.weeklyFrequency}/semaine</span>
-                        </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="w-full"
-                          onClick={() => handleAddCourse(course, 0, 0)}
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Ajouter
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+            {/* Trois panneaux principaux */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+              {/* Panneau 1 : Cours du niveau */}
+              <div>
+                <CoursNiveauPanel 
+                  coursParMatiere={coursDisponibles}
+                  niveau={enfantSelectionne.grade}
+                  loading={loading}
+                />
               </div>
 
-              {/* Colonne droite : Calendrier de la semaine */}
-              <div className="lg:col-span-2">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Calendrier de la semaine
-                  {selectedWeek && (
-                    <span className="ml-2 text-sm font-normal text-gray-600">
-                      ({selectedWeek.totalHours} heures totales)
-                    </span>
-                  )}
-                </h3>
-                
-                {calendarLoading ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                    <p className="text-gray-600">Chargement du calendrier...</p>
-                  </div>
-                ) : selectedWeek ? (
-                  <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                    {/* En-tête avec les jours */}
-                    <div className="grid grid-cols-6 bg-gray-50 border-b">
-                      <div className="p-3 text-sm font-medium text-gray-500">Heure</div>
-                      {WEEK_DAYS.map((day) => (
-                        <div key={day.key} className="p-3 text-sm font-medium text-gray-900 text-center">
-                          {day.short}
-                        </div>
-                      ))}
-                    </div>
+              {/* Panneau 2 : Compétences du niveau */}
+              <div>
+                <CompetencesNiveauPanel 
+                  competencesParMatiere={competencesNiveau}
+                  niveau={enfantSelectionne.grade}
+                  loading={loading}
+                />
+              </div>
 
-                    {/* Grille des créneaux horaires */}
-                    <div className="divide-y">
-                      {DEFAULT_TIME_SLOTS.map((timeSlot, timeIndex) => (
-                        <div key={timeIndex} className="grid grid-cols-6">
-                          <div className="p-3 text-sm text-gray-500 border-r">
-                            {timeSlot.label}
-                          </div>
-                          {WEEK_DAYS.map((day, dayIndex) => {
-                            const event = selectedWeek.events.find(event => {
-                              const eventDate = new Date(event.startISO);
-                              const eventDay = eventDate.getDay();
-                              const eventHour = eventDate.getHours();
-                              const eventMinute = eventDate.getMinutes();
-                              
-                              return eventDay === (dayIndex + 1) && 
-                                     eventHour === parseInt(timeSlot.start.split(':')[0]) &&
-                                     eventMinute === parseInt(timeSlot.start.split(':')[1]);
-                            });
-
-                            return (
-                              <div 
-                                key={day.key} 
-                                className="p-2 border-r min-h-[80px] relative"
-                                onDragOver={(e) => e.preventDefault()}
-                                onDrop={(e) => {
-                                  e.preventDefault();
-                                  // Logique de drop pour ajouter un cours
-                                }}
-                              >
-                                {event ? (
-                                  <div className="bg-primary/10 border border-primary/20 rounded p-2 text-xs">
-                                    <div className="font-medium text-primary">{event.title}</div>
-                                    <div className="text-gray-600">{event.course?.subject}</div>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
-                                      className="absolute top-1 right-1 h-6 w-6 p-0"
-                                      onClick={() => deleteEvent(event.id)}
-                                    >
-                                      <Trash2 className="w-3 h-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <div className="h-full flex items-center justify-center text-gray-400 text-xs">
-                                    Libre
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <Card>
-                    <CardContent className="p-8 text-center">
-                      <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucun calendrier créé</h3>
-                      <p className="text-gray-600 mb-4">
-                        Créez votre premier calendrier d'étude pour {selectedChild.firstName}
-                      </p>
-                      <div className="flex space-x-3 justify-center">
-                        <Button onClick={handleGenerateWeek}>
-                          <Wand2 className="w-4 h-4 mr-2" />
-                          Générer automatiquement
-                        </Button>
-                        <Button variant="outline" onClick={handleCreateEmptyWeek}>
-                          <FileText className="w-4 h-4 mr-2" />
-                          Créer semaine vide
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+              {/* Panneau 3 : Planification par périodes */}
+              <div>
+                <PlanificateurPeriode 
+                  configuration={configuration}
+                  onMettreAJourConfiguration={mettreAJourConfiguration}
+                  onGenererPlan={genererPlan}
+                  loading={loading}
+                  enfantSelectionne={!!enfantSelectionne}
+                />
               </div>
             </div>
 
-            {/* Espace réservé pour le suivi de progression */}
-            <div className="mt-8">
+            {/* Affichage du plan généré */}
+            {planGenere && (
+              <div className="mb-8">
+                <PlanHebdomadaireDisplay 
+                  plan={planGenere}
+                  onPlanifierSemaine={planifierSemaine}
+                />
+              </div>
+            )}
+
+            {/* Placeholder pour le suivi de progression */}
+            <div className="mb-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Suivi de progression</h2>
               <PlaceholderSuivi />
             </div>
           </>
-        )}
-
-        {error && (
-          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-800">{error}</p>
-          </div>
         )}
       </div>
     </div>

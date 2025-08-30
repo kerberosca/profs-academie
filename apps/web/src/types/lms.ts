@@ -1,6 +1,12 @@
 // Normalisation des niveaux scolaires
 export type GradeKey = 'P1' | 'P2' | 'P3' | 'P4' | 'P5' | 'P6' | 'S1' | 'S2' | 'S3' | 'S4' | 'S5';
 
+// Types pour les niveaux de base de données
+export type NiveauScolaire = 
+  | 'MATERNELLE_4_ANS' | 'MATERNELLE_5_ANS'
+  | 'PRIMAIRE_1' | 'PRIMAIRE_2' | 'PRIMAIRE_3' | 'PRIMAIRE_4' | 'PRIMAIRE_5' | 'PRIMAIRE_6'
+  | 'SECONDAIRE_1' | 'SECONDAIRE_2' | 'SECONDAIRE_3' | 'SECONDAIRE_4' | 'SECONDAIRE_5';
+
 // Dictionnaire des libellés localisés
 export const GRADE_LABELS: Record<GradeKey, string> = {
   P1: "Primaire — 1re année",
@@ -17,211 +23,151 @@ export const GRADE_LABELS: Record<GradeKey, string> = {
 };
 
 // Fonction utilitaire pour obtenir le libellé d'un niveau
-export function getGradeLabel(gradeKey: GradeKey): string {
-  return GRADE_LABELS[gradeKey];
+export function getGradeLabel(niveauScolaire: NiveauScolaire | string | null): string {
+  if (!niveauScolaire) return "Niveau non défini";
+  
+  const mapping: Record<string, GradeKey> = {
+    'MATERNELLE_4_ANS': 'P1',
+    'MATERNELLE_5_ANS': 'P1',
+    'PRIMAIRE_1': 'P1',
+    'PRIMAIRE_2': 'P2',
+    'PRIMAIRE_3': 'P3',
+    'PRIMAIRE_4': 'P4',
+    'PRIMAIRE_5': 'P5',
+    'PRIMAIRE_6': 'P6',
+    'SECONDAIRE_1': 'S1',
+    'SECONDAIRE_2': 'S2',
+    'SECONDAIRE_3': 'S3',
+    'SECONDAIRE_4': 'S4',
+    'SECONDAIRE_5': 'S5'
+  };
+
+  const gradeKey = mapping[niveauScolaire];
+  return gradeKey ? GRADE_LABELS[gradeKey] : "Niveau non défini";
 }
 
-// Types principaux
-export interface Child {
+// Types pour les enfants
+export interface Enfant {
   id: string;
-  firstName: string;
-  lastName: string;
-  grade: GradeKey;
-  birthYear: number;
+  prenom: string;
+  nom?: string;
+  anneeNaissance: number;
+  niveauScolaire?: NiveauScolaire;
 }
 
-export interface Course {
+export interface EnfantData {
   id: string;
-  title: string;              // ex: "Français"
-  slug: string;               // ex: "francais"
-  gradeKeys: GradeKey[];      // niveaux où ce cours est offert
-  durationMinutes: number;    // par séance
-  weeklyFrequency: number;    // nb de séances/semaine par défaut
+  name: string;
+  age: number;
+  grade: string;
+  avatar: string;
+  niveauScolaire?: NiveauScolaire;
+}
+
+// Types pour les cours gouvernementaux
+export interface CoursGouvernemental {
+  id: string;
+  titre: string;
   description?: string;
-  subject: string;            // matière (pour compatibilité)
-  outline?: string;           // aperçu du cours/compétences attendues
-  competences?: string[];     // liste des compétences
+  dureeEstimee?: number;
+  competences: string[];
+  urlPdf?: string;
+  urlComplementaire?: string;
 }
 
-export interface CalendarEvent {
+// Types pour les compétences
+export interface Competence {
   id: string;
-  childId: string;
-  courseId: string;
-  startISO: string; // 2025-09-01T09:00:00-04:00
-  endISO: string;
-  title?: string;             // titre du cours (pour affichage)
-  course?: Course;            // données du cours (pour affichage)
-}
-
-export interface CalendarWeek {
-  childId: string;
-  weekStartISO: string; // lundi ISO
-  events: CalendarEvent[];
-  totalHours: number;    // nombre total d'heures pour cette semaine
-}
-
-// Types pour le plan d'apprentissage par périodes
-export interface LearningCompetency {
-  id: string;
-  title: string;
-  description: string;
-  subject: string;
-  grade: GradeKey;
-  order: number;
-  contenus?: ContenuApprentissage[];
+  nom: string;
+  description?: string;
+  ordre: number;
+  contenus: ContenuApprentissage[];
 }
 
 export interface ContenuApprentissage {
   id: string;
   nom: string;
-  description: string;
+  description?: string;
   dureeEstimee: number;
   ordre: number;
 }
 
-export interface WeekPlan {
-  weekNumber: number;
-  startDate: string; // ISO date
-  endDate: string;   // ISO date
-  subjects: SubjectWeekPlan[];
+// Types pour la planification par périodes
+export interface ConfigurationPeriode {
+  dateDebut: string;
+  dateFin: string;
+  frequencesMatiere: Record<string, number>;
 }
 
-export interface SubjectWeekPlan {
-  subject: string;
-  title: string;
-  weeklyFrequency: number;
-  sessions: LearningSession[];
+export interface PlanHebdomadaire {
+  semaine: number;
+  dateDebut: string;
+  dateFin: string;
+  sessions: SessionPlanifiee[];
 }
 
-export interface LearningSession {
+export interface SessionPlanifiee {
   id: string;
-  competencyId: string;
-  competencyTitle: string;
-  competencyDescription: string;
-  durationMinutes: number;
-  order: number;
+  matiere: string;
+  competenceId: string;
+  competenceNom: string;
+  jour: string;
+  dureeMinutes: number;
   contenuNom?: string;
-  contenuDescription?: string;
 }
 
-export interface LearningPlan {
-  id: string;
-  childId: string;
-  childName: string;
-  grade: GradeKey;
-  startDate: string;
-  endDate: string;
-  totalWeeks: number;
-  weeks: WeekPlan[];
+export interface PlanPeriode {
+  enfantId: string;
+  enfantNom: string;
+  niveau: string;
+  configuration: ConfigurationPeriode;
+  semaines: PlanHebdomadaire[];
 }
 
-// Types pour les requêtes API
-export interface GenerateWeekRequest {
-  childId: string;
-  weekStartISO: string;
-  hoursPerWeek: number;  // nombre d'heures par semaine
-}
-
-export interface CreateEventRequest {
-  childId: string;
-  courseId: string;
-  startISO: string;
-  endISO: string;
-}
-
-export interface UpdateEventRequest {
-  startISO: string;
-  endISO: string;
-}
-
-export interface GenerateLearningPlanRequest {
-  childId: string;
-  startDate: string;
-  endDate: string;
-}
-
-export interface PlanWeekRequest {
-  weekNumber: number;
-  childId: string;
-  subject: string;
-  competencyId: string;
-}
-
-// Types pour les créneaux horaires
-export interface TimeSlot {
-  start: string; // "09:00"
-  end: string;   // "10:00"
-  label: string; // "9h00 - 10h00"
-}
-
-// Configuration des créneaux par défaut
-export const DEFAULT_TIME_SLOTS: TimeSlot[] = [
-  { start: "09:00", end: "10:00", label: "9h00 - 10h00" },
-  { start: "10:15", end: "11:15", label: "10h15 - 11h15" },
-  { start: "13:00", end: "14:00", label: "13h00 - 14h00" },
-  { start: "14:15", end: "15:00", label: "14h15 - 15h00" }
-];
-
-// Options pour le nombre d'heures par semaine
-export const HOURS_PER_WEEK_OPTIONS = [
-  { value: 5, label: "5 heures par semaine" },
-  { value: 10, label: "10 heures par semaine" },
-  { value: 15, label: "15 heures par semaine" },
-  { value: 20, label: "20 heures par semaine" },
-  { value: 25, label: "25 heures par semaine" }
-];
-
-// Ordre d'importance des matières pour la génération automatique
-export const SUBJECT_PRIORITY = [
-  'Français',
-  'Mathématiques', 
-  'Sciences',
-  'Univers social',
-  'Arts',
-  'ÉPS',
-  'CCQ'
-];
-
-// Types pour les jours de la semaine
-export type WeekDay = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday';
-
-export const WEEK_DAYS: { key: WeekDay; label: string; short: string }[] = [
-  { key: 'monday', label: 'Lundi', short: 'LUN' },
-  { key: 'tuesday', label: 'Mardi', short: 'MAR' },
-  { key: 'wednesday', label: 'Mercredi', short: 'MER' },
-  { key: 'thursday', label: 'Jeudi', short: 'JEU' },
-  { key: 'friday', label: 'Vendredi', short: 'VEN' }
-];
-
-// Types pour les hooks et états
-export interface CalendarState {
-  selectedChild: Child | null;
-  selectedWeek: CalendarWeek | null;
-  availableCourses: Course[];
-  hoursPerWeek: number;
+// Types pour l'état du LMS
+export interface LMSState {
+  enfantSelectionne: EnfantData | null;
+  coursDisponibles: Record<string, CoursGouvernemental[]>;
+  competencesNiveau: Record<string, Competence[]>;
+  planGenere: PlanPeriode | null;
+  configuration: ConfigurationPeriode;
   loading: boolean;
   error: string | null;
 }
 
-// Types pour les actions de calendrier
-export type CalendarAction = 
-  | { type: 'SET_SELECTED_CHILD'; payload: Child }
-  | { type: 'SET_SELECTED_WEEK'; payload: CalendarWeek }
-  | { type: 'SET_AVAILABLE_COURSES'; payload: Course[] }
-  | { type: 'SET_HOURS_PER_WEEK'; payload: number }
-  | { type: 'ADD_EVENT'; payload: CalendarEvent }
-  | { type: 'UPDATE_EVENT'; payload: { id: string; event: Partial<CalendarEvent> } }
-  | { type: 'DELETE_EVENT'; payload: string }
-  | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_ERROR'; payload: string | null };
+// Configuration par défaut des fréquences par matière
+export const FREQUENCES_DEFAUT: Record<string, number> = {
+  'FRANCAIS': 5,
+  'MATHEMATIQUES': 5,
+  'SCIENCES': 3,
+  'HISTOIRE': 2,
+  'GEOGRAPHIE': 2,
+  'ARTS': 2,
+  'EDUCATION_PHYSIQUE': 2,
+  'ETHIQUE_CULTURE_RELIGIEUSE': 1
+};
 
-// Types pour les filtres
-export interface CourseFilters {
-  grade?: GradeKey;
-  subject?: string;
-}
+// Libellés des matières pour l'affichage
+export const MATIERES_LABELS: Record<string, string> = {
+  'FRANCAIS': 'Français',
+  'MATHEMATIQUES': 'Mathématiques',
+  'SCIENCES': 'Sciences et technologie',
+  'HISTOIRE': 'Histoire',
+  'GEOGRAPHIE': 'Géographie',
+  'ARTS': 'Arts',
+  'EDUCATION_PHYSIQUE': 'Éducation physique et santé',
+  'ETHIQUE_CULTURE_RELIGIEUSE': 'Éthique et culture religieuse',
+  'ANGLAIS': 'Anglais',
+  'ESPAGNOL': 'Espagnol',
+  'TECHNOLOGIE': 'Technologie',
+  'ECONOMIE_FAMILIALE': 'Économie familiale'
+};
 
-export interface CalendarFilters {
-  childId?: string;
-  weekStartISO?: string;
-}
+// Jours de la semaine
+export const JOURS_SEMAINE = [
+  { key: 'lundi', label: 'Lundi' },
+  { key: 'mardi', label: 'Mardi' },
+  { key: 'mercredi', label: 'Mercredi' },
+  { key: 'jeudi', label: 'Jeudi' },
+  { key: 'vendredi', label: 'Vendredi' }
+];
