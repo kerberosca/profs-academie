@@ -1,0 +1,92 @@
+{
+  "timestamp": "2025-08-29T21:45:10.999Z",
+  "totalTables": 24,
+  "tableStats": {
+    "_CalendrierCours": -1,
+    "_prisma_migrations": -1,
+    "abonnements": -1,
+    "audit_logs": -1,
+    "calendriers_etude": -1,
+    "competences": -1,
+    "consentements": -1,
+    "contenus_apprentissage": -1,
+    "cours": -1,
+    "cours_gouvernementaux": -1,
+    "enfants": -1,
+    "foyers": -1,
+    "lecons": -1,
+    "modules": -1,
+    "plans": -1,
+    "profils_prof": -1,
+    "progressions": -1,
+    "progressions_cours": -1,
+    "questions": -1,
+    "quiz": -1,
+    "sessions_etude": -1,
+    "soumissions": -1,
+    "suivis_apprentissage": -1,
+    "users": -1
+  },
+  "foreignKeys": 26,
+  "potentiallyUnused": [
+    {
+      "table": "_CalendrierCours",
+      "reason": "Erreur d'accès"
+    },
+    {
+      "table": "_prisma_migrations",
+      "reason": "Erreur d'accès"
+    },
+    {
+      "table": "abonnements",
+      "reason": "Erreur d'accès"
+    },
+    {
+      "table": "audit_logs",
+      "reason": "Erreur d'accès"
+    },
+    {
+      "table": "consentements",
+      "reason": "Erreur d'accès"
+    },
+    {
+      "table": "cours",
+      "reason": "Erreur d'accès"
+    },
+    {
+      "table": "lecons",
+      "reason": "Erreur d'accès"
+    },
+    {
+      "table": "modules",
+      "reason": "Erreur d'accès"
+    },
+    {
+      "table": "plans",
+      "reason": "Erreur d'accès"
+    },
+    {
+      "table": "progressions",
+      "reason": "Erreur d'accès"
+    },
+    {
+      "table": "questions",
+      "reason": "Erreur d'accès"
+    },
+    {
+      "table": "quiz",
+      "reason": "Erreur d'accès"
+    },
+    {
+      "table": "soumissions",
+      "reason": "Erreur d'accès"
+    },
+    {
+      "table": "suivis_apprentissage",
+      "reason": "Erreur d'accès"
+    }
+  ],
+  "recommendations": [
+    "Considérer la suppression des tables inutilisées"
+  ]
+}

@@ -1,0 +1,436 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String            @id @default(cuid())
+  email          String            @unique
+  motDePasseHash String?
+  nom            String
+  role           UserRole          @default(PARENT)
+  locale         String            @default("fr-CA")
+  fuseau         String            @default("America/Montreal")
+  verifiedAt     DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  abonnements    abonnements[]
+  audit_logs     audit_logs[]
+  calendriers    CalendrierEtude[] @relation("CalendrierParent")
+  consentements  consentements[]
+  cours          cours[]
+  foyer          Foyer?            @relation("FoyerParent")
+  profilProf     ProfilProf?
+
+  @@map("users")
+}
+
+model Foyer {
+  id        String   @id @default(cuid())
+  nom       String
+  parentId  String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  enfants   Enfant[]
+  parent    User     @relation("FoyerParent", fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@map("foyers")
+}
+
+model Enfant {
+  id                   String                 @id @default(cuid())
+  prenom               String
+  avatarUrl            String?
+  pinHash              String
+  anneeNaissance       Int
+  foyerId              String
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  niveauScolaire       NiveauScolaire?
+  nom                  String?
+  calendriers          CalendrierEtude[]
+  foyer                Foyer                  @relation(fields: [foyerId], references: [id], onDelete: Cascade)
+  progressions         progressions[]
+  progressionsCours    ProgressionCours[]
+  soumissions          soumissions[]
+  suivis_apprentissage suivis_apprentissage[]
+
+  @@map("enfants")
+}
+
+model ProfilProf {
+  id        String        @id @default(cuid())
+  statut    TeacherStatus @default(PENDING)
+  bio       String?
+  userId    String        @unique
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profils_prof")
+}
+
+model CoursGouvernemental {
+  id                String             @id @default(cuid())
+  titre             String
+  description       String?
+  matiere           Matiere
+  niveauScolaire    NiveauScolaire
+  urlPdf            String
+  urlComplementaire String?
+  dureeEstimee      Int?
+  competences       String[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  progressions      ProgressionCours[]
+  sessions          SessionEtude[]
+  calendriers       CalendrierEtude[]  @relation("CalendrierCours")
+
+  @@map("cours_gouvernementaux")
+}
+
+model CalendrierEtude {
+  id          String                @id @default(cuid())
+  nom         String
+  description String?
+  enfantId    String
+  parentId    String
+  actif       Boolean               @default(true)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  enfant      Enfant                @relation(fields: [enfantId], references: [id], onDelete: Cascade)
+  parent      User                  @relation("CalendrierParent", fields: [parentId], references: [id], onDelete: Cascade)
+  sessions    SessionEtude[]
+  cours       CoursGouvernemental[] @relation("CalendrierCours")
+
+  @@map("calendriers_etude")
+}
+
+model SessionEtude {
+  id             String               @id @default(cuid())
+  titre          String
+  description    String?
+  dateDebut      DateTime
+  dateFin        DateTime?
+  dureePlanifiee Int
+  calendrierId   String
+  coursId        String?
+  typeCours      TypeCours
+  statut         StatutProgression    @default(NON_COMMENCE)
+  notes          String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  calendrier     CalendrierEtude      @relation(fields: [calendrierId], references: [id], onDelete: Cascade)
+  cours          CoursGouvernemental? @relation(fields: [coursId], references: [id])
+
+  @@map("sessions_etude")
+}
+
+model ProgressionCours {
+  id           String              @id @default(cuid())
+  pourcentage  Float               @default(0)
+  tempsPasse   Int                 @default(0)
+  dernierAcces DateTime            @default(now())
+  statut       StatutProgression   @default(NON_COMMENCE)
+  notes        String?
+  enfantId     String
+  coursId      String
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  cours        CoursGouvernemental @relation(fields: [coursId], references: [id], onDelete: Cascade)
+  enfant       Enfant              @relation(fields: [enfantId], references: [id], onDelete: Cascade)
+
+  @@unique([enfantId, coursId])
+  @@map("progressions_cours")
+}
+
+model Competence {
+  id                    String                 @id @default(cuid())
+  nom                   String
+  description           String?
+  matiere               Matiere
+  niveauScolaire        NiveauScolaire
+  ordre                 Int
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  contenusApprentissage ContenuApprentissage[]
+
+  @@unique([matiere, niveauScolaire, ordre])
+  @@map("competences")
+}
+
+model ContenuApprentissage {
+  id           String     @id @default(cuid())
+  nom          String
+  description  String?
+  dureeEstimee Int
+  ordre        Int
+  prerequis    String[]
+  competenceId String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  competence   Competence @relation(fields: [competenceId], references: [id], onDelete: Cascade)
+
+  @@unique([competenceId, ordre])
+  @@map("contenus_apprentissage")
+}
+
+model abonnements {
+  id               String             @id
+  stripeCustomerId String?            @unique
+  stripeSubId      String?            @unique
+  statut           SubscriptionStatus @default(TRIAL)
+  finPeriode       DateTime?
+  userId           String
+  planId           String
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime
+  plans            plans              @relation(fields: [planId], references: [id])
+  users            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model audit_logs {
+  id        String   @id
+  action    String
+  cibleType String?
+  cibleId   String?
+  metadata  Json?
+  acteurId  String
+  createdAt DateTime @default(now())
+  users     User     @relation(fields: [acteurId], references: [id])
+}
+
+model consentements {
+  id        String      @id
+  type      ConsentType
+  accordeAt DateTime    @default(now())
+  userId    String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime
+  users     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([type, userId])
+}
+
+model cours {
+  id        String       @id
+  titre     String
+  slug      String       @unique
+  matiere   String
+  niveau    String
+  resume    String?
+  image     String?
+  statut    CourseStatus @default(DRAFT)
+  auteurId  String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime
+  users     User         @relation(fields: [auteurId], references: [id])
+  modules   modules[]
+}
+
+model lecons {
+  id           String         @id
+  titre        String
+  slug         String
+  mdx          String
+  dureeMin     Int            @default(0)
+  ordre        Int
+  moduleId     String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime
+  modules      modules        @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progressions progressions[]
+  quiz         quiz[]
+
+  @@unique([moduleId, slug])
+}
+
+model modules {
+  id        String   @id
+  titre     String
+  ordre     Int
+  coursId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  lecons    lecons[]
+  cours     cours    @relation(fields: [coursId], references: [id], onDelete: Cascade)
+}
+
+model plans {
+  id          String               @id
+  key         String               @unique
+  nom         String
+  prixCents   Int
+  intervalle  SubscriptionInterval
+  nbEnfants   Int
+  description String?
+  features    String[]
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime
+  abonnements abonnements[]
+}
+
+model progressions {
+  id              String   @id
+  complete        Boolean  @default(false)
+  secondesPassees Int      @default(0)
+  dernierAcces    DateTime @default(now())
+  leconId         String
+  enfantId        String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime
+  enfants         Enfant   @relation(fields: [enfantId], references: [id], onDelete: Cascade)
+  lecons          lecons   @relation(fields: [leconId], references: [id], onDelete: Cascade)
+
+  @@unique([leconId, enfantId])
+}
+
+model questions {
+  id         String       @id
+  type       QuestionType
+  enonce     String
+  options    Json?
+  cleReponse Json
+  quizId     String
+  ordre      Int
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime
+  quiz       quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+}
+
+model quiz {
+  id          String        @id
+  titre       String
+  ordre       Int
+  leconId     String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime
+  questions   questions[]
+  lecons      lecons        @relation(fields: [leconId], references: [id], onDelete: Cascade)
+  soumissions soumissions[]
+}
+
+model soumissions {
+  id        String    @id
+  reponses  Json
+  score     Float?
+  corrigeAt DateTime?
+  quizId    String
+  enfantId  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime
+  enfants   Enfant    @relation(fields: [enfantId], references: [id], onDelete: Cascade)
+  quiz      quiz      @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@unique([quizId, enfantId])
+}
+
+model suivis_apprentissage {
+  id                  String         @id
+  date                DateTime       @default(now())
+  matiere             Matiere
+  niveauScolaire      NiveauScolaire
+  tempsPasse          Int
+  coursCompletes      Int            @default(0)
+  competencesAcquises String[]
+  observations        String?
+  enfantId            String
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime
+  enfants             Enfant         @relation(fields: [enfantId], references: [id], onDelete: Cascade)
+}
+
+enum UserRole {
+  ADMIN
+  STAFF
+  TEACHER
+  PARENT
+  CHILD
+}
+
+enum TeacherStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum NiveauScolaire {
+  MATERNELLE_4_ANS
+  MATERNELLE_5_ANS
+  PRIMAIRE_1
+  PRIMAIRE_2
+  PRIMAIRE_3
+  PRIMAIRE_4
+  PRIMAIRE_5
+  PRIMAIRE_6
+  SECONDAIRE_1
+  SECONDAIRE_2
+  SECONDAIRE_3
+  SECONDAIRE_4
+  SECONDAIRE_5
+}
+
+enum Matiere {
+  FRANCAIS
+  MATHEMATIQUES
+  SCIENCES
+  HISTOIRE
+  GEOGRAPHIE
+  ARTS
+  EDUCATION_PHYSIQUE
+  ETHIQUE_CULTURE_RELIGIEUSE
+  ANGLAIS
+  ESPAGNOL
+  TECHNOLOGIE
+  ECONOMIE_FAMILIALE
+}
+
+enum StatutProgression {
+  NON_COMMENCE
+  EN_COURS
+  TERMINE
+  EN_PAUSE
+}
+
+enum TypeCours {
+  COURS_GOUVERNEMENTAL
+  COURS_PERSONNALISE
+  ACTIVITE_COMPLEMENTAIRE
+}
+
+enum ConsentType {
+  PRIVACY_POLICY
+  TERMS_OF_SERVICE
+  COOKIES
+  MARKETING
+}
+
+enum CourseStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+enum QuestionType {
+  SINGLE
+  MULTIPLE
+  SHORT
+}
+
+enum SubscriptionInterval {
+  MONTH
+  YEAR
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  UNPAID
+  TRIAL
+}

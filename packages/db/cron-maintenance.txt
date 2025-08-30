@@ -1,0 +1,11 @@
+
+# Configuration cron pour la maintenance de la base de données Profs Académie
+
+# Maintenance quotidienne - 2h00 du matin
+0 2 * * * cd /path/to/profsacademie/packages/db && node scripts/daily-maintenance.js >> logs/daily-maintenance.log 2>&1
+
+# Maintenance hebdomadaire - Dimanche 3h00 du matin
+0 3 * * 0 cd /path/to/profsacademie/packages/db && node scripts/weekly-maintenance.js >> logs/weekly-maintenance.log 2>&1
+
+# Maintenance mensuelle - 1er du mois à 4h00 du matin
+0 4 1 * * cd /path/to/profsacademie/packages/db && node scripts/monthly-maintenance.js >> logs/monthly-maintenance.log 2>&1

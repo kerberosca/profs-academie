@@ -1,0 +1,22 @@
+{
+  "timestamp": "2025-08-29T21:55:57.055Z",
+  "schedule": {
+    "daily": "2h00 - Nettoyage des logs anciens et vérification des orphelins",
+    "weekly": "Dimanche 3h00 - Vérification d'intégrité et rapport de santé",
+    "monthly": "1er du mois 4h00 - Analyse complète et recommandations",
+    "backup": "Avant chaque maintenance - Sauvegarde automatique"
+  },
+  "scripts": {
+    "daily": "scripts/daily-maintenance.js",
+    "weekly": "scripts/weekly-maintenance.js",
+    "monthly": "scripts/monthly-maintenance.js",
+    "backup": "scripts/create-backup.js"
+  },
+  "recommendations": [
+    "Configurer les tâches cron sur le serveur de production",
+    "Surveiller les logs de maintenance régulièrement",
+    "Tester les scripts de maintenance en environnement de développement",
+    "Mettre en place des alertes en cas d'échec de maintenance",
+    "Réviser les scripts de maintenance tous les 6 mois"
+  ]
+}
